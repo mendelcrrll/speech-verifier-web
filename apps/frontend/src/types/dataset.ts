@@ -12,7 +12,8 @@ export type SpeechSample = {
   user: string;
   stem: string;
   sourcePath: string;
-  audioFile: File;
+  audioFile?: File;
+  audioUrl?: string;
   originalTranscript: string;
   editedTranscript: string;
   status: ReviewStatus;
@@ -25,8 +26,10 @@ export type InterferenceSample = {
   user: string;
   stem: string;
   sourcePath: string;
-  audioFile: File;
+  audioFile?: File;
+  audioUrl?: string;
   noiseTypeFile?: File;
+  noiseTypePath?: string;
   noiseType?: string;
 };
 

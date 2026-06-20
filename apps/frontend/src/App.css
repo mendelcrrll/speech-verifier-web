@@ -25,6 +25,66 @@
   text-align: left;
 }
 
+.header-actions,
+.start-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.start-actions {
+  width: min(100%, 520px);
+  flex-direction: column;
+}
+
+.backend-key-panel {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.start-actions .backend-key-panel {
+  width: min(100%, 420px);
+}
+
+.backend-key-panel label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.backend-key-panel input {
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+}
+
+.backend-key-panel button {
+  padding: 10px 14px;
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.backend-key-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-header h1 {
   max-width: 760px;
   margin: 0 0 18px;
@@ -120,6 +180,10 @@
 
 .error-message {
   color: #b42318;
+}
+
+.success-message {
+  color: #2e7d32;
 }
 
 .dataset-summary {
@@ -586,6 +650,19 @@
   .app-header.compact {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .header-actions,
+  .backend-key-panel {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .backend-key-panel input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
   }
 
   .summary-grid {

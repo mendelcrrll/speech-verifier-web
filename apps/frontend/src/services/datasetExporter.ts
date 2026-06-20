@@ -15,12 +15,19 @@ export async function exportVerifiedZip(
     }
 
     const sampleDir = `verified/${sample.mode}/${sample.split}/${sample.user}/${sample.stem}`;
+    if (!sample.audioFile) {
+      continue;
+    }
     zip.file(`${sampleDir}/recording.wav`, sample.audioFile);
     zip.file(`${sampleDir}/transcript.txt`, review.editedTranscript);
     zip.file(`${sampleDir}/transcript_original.txt`, sample.originalTranscript);
   }
 
   for (const sample of dataset.interferenceSamples) {
+    if (!sample.audioFile) {
+      continue;
+    }
+
     const baseDir = `verified/${sample.mode}/inteference/${sample.split}/${sample.user}`;
     zip.file(`${baseDir}/${fileName(sample.sourcePath)}`, sample.audioFile);
 

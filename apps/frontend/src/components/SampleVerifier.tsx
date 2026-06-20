@@ -35,11 +35,15 @@ export function SampleVerifier({
     }
 
     if (audioElement) {
-      const nextAudioUrl = URL.createObjectURL(sample.audioFile);
-      audioElement.src = nextAudioUrl;
-      currentAudioUrl.current = nextAudioUrl;
+      if (sample.audioUrl) {
+        audioElement.src = sample.audioUrl;
+      } else if (sample.audioFile) {
+        const nextAudioUrl = URL.createObjectURL(sample.audioFile);
+        audioElement.src = nextAudioUrl;
+        currentAudioUrl.current = nextAudioUrl;
+      }
     }
-  }, [sample.audioFile]);
+  }, [sample.audioFile, sample.audioUrl]);
 
   return (
     <section className="verifier-panel">

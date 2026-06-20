@@ -1,0 +1,13 @@
+{
+  "demo-key": {
+    "user": "verifier_001",
+    "s3_uri": "s3://your-bucket/path/to/verification-package/",
+    "verified_s3_uri": "s3://your-bucket/path/to/verification-package/verified/"
+  },
+  "alternate-format": {
+    "user": "verifier_002",
+    "bucket": "your-bucket",
+    "s3_prefix": "path/to/another-package/"
+  }
+}
+

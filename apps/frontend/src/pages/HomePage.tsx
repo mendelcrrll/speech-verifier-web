@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { BackendKeyLoader } from "../components/BackendKeyLoader";
 import { DatasetImporter } from "../components/DatasetImporter";
 import { DatasetSummary } from "../components/DatasetSummary";
 import { ImportIcon } from "../components/ImportIcon";
 import { SamplePage } from "./SamplePage";
+import { createBackendSession, finishBackendSession, saveBackendReview } from "../services/backendApi";
 import { parseDatasetFolder } from "../services/datasetParser";
 import { exportVerifiedZip } from "../services/datasetExporter";
 import { buildReviewRows } from "../services/reviewRows";
@@ -14,8 +16,11 @@ export function HomePage() {
   const [dataset, setDataset] = useState<ParsedDataset | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isBackendLoading, setIsBackendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, SampleReviewState>>({});
+  const [backendSessionId, setBackendSessionId] = useState<string | null>(null);
   const [activePage, setActivePage] = useState<"home" | "sample">("home");
   const [selectedSampleId, setSelectedSampleId] = useState<string | null>(null);
   const reviewRows = useMemo(() => (dataset ? buildReviewRows(dataset, reviews) : []), [dataset, reviews]);
@@ -33,16 +38,47 @@ export function HomePage() {
       const parsedDataset = await parseDatasetFolder(files);
       setDataset(parsedDataset);
       setReviews(initialReviewState(parsedDataset));
+      setBackendSessionId(null);
+      setSuccessMessage(null);
       setActivePage("home");
       setSelectedSampleId(null);
     } catch (parseError) {
       setDataset(null);
       setReviews({});
+      setBackendSessionId(null);
       setActivePage("home");
       setSelectedSampleId(null);
       setError(parseError instanceof Error ? parseError.message : "Unable to parse this dataset.");
     } finally {
       setIsParsing(false);
+    }
+  }
+
+  async function handleBackendLoad(key: string) {
+    setIsBackendLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const state = await createBackendSession(key);
+      setDataset(state.dataset);
+      setReviews({
+        ...initialReviewState(state.dataset),
+        ...state.reviews,
+      });
+      setBackendSessionId(state.sessionId);
+      setActivePage("home");
+      setSelectedSampleId(null);
+      setSuccessMessage(`Loaded server dataset for ${state.user}.`);
+    } catch (loadError) {
+      setDataset(null);
+      setReviews({});
+      setBackendSessionId(null);
+      setActivePage("home");
+      setSelectedSampleId(null);
+      setError(loadError instanceof Error ? loadError.message : "Unable to load this verification key.");
+    } finally {
+      setIsBackendLoading(false);
     }
   }
 
@@ -68,6 +104,7 @@ export function HomePage() {
         status,
       },
     }));
+    void persistBackendReview(sampleId, { status });
   }
 
   function handleTranscriptChange(sampleId: string, editedTranscript: string) {
@@ -78,6 +115,22 @@ export function HomePage() {
         editedTranscript,
       },
     }));
+    void persistBackendReview(sampleId, { editedTranscript });
+  }
+
+  async function persistBackendReview(
+    sampleId: string,
+    review: Partial<{ editedTranscript: string; status: ReviewStatus }>,
+  ) {
+    if (!backendSessionId) {
+      return;
+    }
+
+    try {
+      await saveBackendReview(backendSessionId, sampleId, review);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save review to backend.");
+    }
   }
 
   function handleSelectSample(sampleId: string) {
@@ -107,10 +160,16 @@ export function HomePage() {
     }
 
     setError(null);
+    setSuccessMessage(null);
     setIsExporting(true);
 
     try {
-      await exportVerifiedZip(dataset, reviews);
+      if (backendSessionId) {
+        const result = await finishBackendSession(backendSessionId);
+        setSuccessMessage(`Uploaded ${result.uploadedCount} verified files to ${result.verifiedS3Prefix}.`);
+      } else {
+        await exportVerifiedZip(dataset, reviews);
+      }
     } catch (exportError) {
       setError(exportError instanceof Error ? exportError.message : "Unable to export verified zip.");
     } finally {
@@ -151,18 +210,23 @@ export function HomePage() {
           )}
         </div>
 
-        <DatasetImporter
-          className={dataset ? "import-button" : "import-card"}
-          onImport={handleImport}
-          onZipImport={handleZipImport}
-        >
-          <ImportIcon />
-          <span>{dataset ? "Import" : "Import file or drag and drop"}</span>
-        </DatasetImporter>
+        <div className={dataset ? "header-actions" : "start-actions"}>
+          <BackendKeyLoader isLoading={isBackendLoading} onLoad={handleBackendLoad} />
+          <DatasetImporter
+            className={dataset ? "import-button" : "import-card"}
+            onImport={handleImport}
+            onZipImport={handleZipImport}
+          >
+            <ImportIcon />
+            <span>{dataset ? "Import" : "Import file or drag and drop"}</span>
+          </DatasetImporter>
+        </div>
       </header>
 
       {isParsing && <p className="status-message">Parsing dataset...</p>}
+      {isBackendLoading && <p className="status-message">Loading assigned dataset...</p>}
       {isExporting && <p className="status-message">Preparing verified zip...</p>}
+      {successMessage && <p className="status-message success-message">{successMessage}</p>}
       {error && <p className="status-message error-message">{error}</p>}
       {dataset && (
         <DatasetSummary
